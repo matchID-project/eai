@@ -1,0 +1,7 @@
+datasets:
+  panel:
+    connector: upload
+    table: panel.csv.gz
+    type: csv
+    sep: "|"
+    encoding: "utf8"

@@ -1,0 +1,82 @@
+recipes:
+  dataprep_panel:
+    test_chunk_size: 10000
+    input: panel
+    output: panel_index
+    steps:
+      ##### FILTRAGE AMONT ##########
+      - keep:
+          select: .*
+          where: (random.random() < 0.01) & (CLE_NUM_SPI != "CLE_NUM_SPI")
+      # identifiants       
+      - eval:
+        #tag dataset and records with uniq id
+          - matchid_id: sha1(row)
+          - matchid_id_: NUM_PERSONNE+CLE_NUM_SPI
+          - matchid_src: str("ref_fiscal")
+      ##### MAPPING #####         
+      - map:
+          #date
+          matchid_date_birth_src: DATE_NAISSANCE
+          matchid_date_birth_str: DATE_NAISSANCE
+          matchid_date_birth: DATE_NAISSANCE
+          matchid_date_maj_spi_src: DATE_MAJ_SPI
+          matchid_date_maj_src: DATE_MAJ_PERSONNE
+          #name
+          matchid_name_last_src: 
+            - NOM1_PERSONNE
+            - NOM_JEUNE_FILLE
+          matchid_name_first_src: PRENOM_PERSONNE
+          #location
+          matchid_location_city_src: LIB_COMMUNE_NAISSANCE
+          matchid_location_citycode_src: CODE_COMMUNE_NAISSANCE
+          matchid_location_country_src: LIB_COMMUNE_NAISSANCE
+          matchid_location_depcode_src: CODE_DPT_NAISSANCE
+          matchid_location_depcode: CODE_DPT_NAISSANCE
+
+          #sex
+          matchid_sex_src: CODE_CIVILITE
+          #divers
+          matchid_certification: CODE_CERTIFICATION
+      - keep: 
+          select: matchid_.*
+      ####### PREPARATION #######
+      #sex
+      - eval:
+          - matcihd_sex: 1 if (matchid_sex_src == "M") else 2
+      #name
+      - eval:
+          - matchid_name_last_src: list(set([matchid_name_last_src[0],matchid_name_last_src[1].split(",")[0]]))
+          - matchid_name_last_src: list([x for x in  matchid_name_last_src if x != ""])         
+      - french_name_normalize:
+      - french_name_frequency:
+      
+      #location
+      - country_label:
+      - eval:
+          - matchid_location_country: matchid_location_country if (matchid_location_country != "") else "FRANCE" if (matchid_location_depcode_src != "99") else ""
+          - matchid_location_countrycode: matchid_location_countrycode if (matchid_location_countrycode != "") else "FRA" if (matchid_location_depcode_src != "99") else ""
+      - french_city+dep:
+      - algeria_city:
+      
+      # date
+ 
+      - replace:
+          select: matchid_date_(birth($|_str)|.*maj.*)
+          regex:
+            - JAN: "01"
+            - FEB: "02"
+            - MAR: "03"
+            - APR: "04"
+            - MAY: "05"
+            - JUN: "06"
+            - JUL: "07"
+            - AUG: "08"
+            - SEP: "09"
+            - OCT: "10"
+            - NOV: "11"
+            - DEC: "12"
+            - '(\d{2})-(\d{2})-(\d{2})': '19\3\2\1'
+      - parsedate:
+          select: matchid_date_(birth$|.*maj.*)
+          format: "%Y%m%d"

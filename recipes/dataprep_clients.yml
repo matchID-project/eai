@@ -1,0 +1,86 @@
+recipes:
+  dataprep_panel:
+    test_chunk_size: 100000
+    input: panel
+    output: panel_index
+    steps:
+      - keep:
+          select: .*
+          where: (random.random()<0.01) & (CLE_NUM_SPI != "CLE_NUM_SPI")
+      - eval:
+          - matchid_id: sha1(row)
+          - matchid_id_num_personne: NUM_PERSONNE
+          - matchid_id_num_spi: NUM_SPI+CLE_NUM_SPI
+          - matchid_src: str("panel")
+        
+      - map:
+          #date
+          matchid_date_birth_src: DATE_NAISSANCE
+          matchid_date_birth_str: DATE_NAISSANCE
+          matchid_date_birth: DATE_NAISSANCE
+          # matchid_validity: DATE_VALIDITE
+          matchid_certification: CODE_CERTIFICATION
+          #name
+          matchid_name_first_src: PRENOM_PERSONNE
+          matchid_name_last_src: 
+            - NOM1_PERSONNE
+            - NOM_JEUNE_FILLE
+          #location
+          matchid_location_city_src: LIB_COMMUNE_NAISSANCE
+          matchid_location_depcode_src: CODE_DPT_NAISSANCE
+          matchid_location_citycode_src: CODE_COMMUNE_NAISSANCE
+          #sex
+          matchid_sex_src: CODE_CIVILITE
+
+      - keep: 
+          select: matchid_.*
+          
+      #sex: 
+      - eval:
+          - matchid_sex: 1 if (matchid_sex_src == "M") else 2
+      - to_integer:
+          select: matchid_certification
+
+      #name
+      - french_name_normalize:
+      - french_name_frequency:
+     
+      #location
+      - eval:
+          - matchid_location_country_src: str("FRANCE") if (matchid_location_depcode_src != "99") else matchid_location_city_src                  
+      - country_label:
+          
+      - eval:
+         # - matchid_location_countrycode: str("FRA") if (matchid_location_depcode_src != "99") else "XXX"                    
+          - matchid_location_depcode: matchid_location_depcode_src
+      - french_city+dep:
+
+    #  - algeria_city:
+
+
+      #date
+      - replace:
+          select: matchid_date_birth(_str)?$
+          regex:
+            - '-': ''
+            - 'JAN': '01'
+            - 'FEB': '02'
+            - 'MAR': '03'
+            - 'APR': '04'
+            - 'MAY': '05'
+            - 'JUN': '06'
+            - 'JUL': '07'
+            - 'AUG': '08'
+            - 'SEP': '09'
+            - 'OCT': '10'
+            - 'NOV': '11'
+            - 'DEC': '12'
+            - '(\d{2})(\d{2})(\d{2})': '19\3\2\1'
+            
+      - parsedate:
+          select: matchid_date_birth$
+          format: '%Y%m%d'
+      - keep:
+          select: .*
+          where: (matchid_date_birth_str > "19500000") & (matchid_date_birth_str < "19600000")
+          
