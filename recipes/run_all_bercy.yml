@@ -1,0 +1,7 @@
+recipes:
+  run_all_bercy:
+    run:
+      - dataprep_panel
+     # - dataprep_name
+      - coop_x_fisc
+      - rescoring_coop_x_fisc

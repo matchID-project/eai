@@ -7,26 +7,39 @@ datasets:
         #index.store.type: mmapfs 
         index:
           refresh_interval: 30s
+          number_of_shards: 40
           number_of_replicas: 0
-          analysis:
-            analyzer:
-              matchid_analyzer:
-                tokenizer: standard
-                filter:
-                  - standard
-                  - lowercase
-                  - matchid_phone
-            filter:
-              matchid_phone:
-                type: phonetic
-                encoder: doublemetaphone
-                replace: False  
+        #  analysis:
+        #    analyzer:
+        #      matchid_analyzer:
+        #        tokenizer: standard
+        #        filter:
+        #          - standard
+        #          - lowercase
+        #          - matchid_phone
+        #    filter:
+        #      matchid_phone:
+        #        type: phonetic
+        #        encoder: doublemetaphone
+        #        replace: False  
       mappings:
         panel_index:       
-          _all:
-            enabled: False
-          dynamic: False
+          #_all:
+          #  enabled: False
+          # dynamic: False
           properties:
+            matchid_location_es_geopoint_2d:
+              type: geo_point
+            matchid_date_birth:
+              type: date
+            matchid_date_maj_src:
+              type: date               
+            matchid_date_maj_spi_src:
+              type: date               
+            matchid_location_city_population:
+              type: integer
+            matchid_location_citycode:
+              type: keyword
             matchid_id:
               type: keyword
             #above lines are useless if deaths not used for matching
@@ -34,8 +47,6 @@ datasets:
               type: text
             matchid_date_birth_str:
               type: keyword
-            matchid_date_death_src:
-              type: keyword              
             matchid_location_city:
               type: keyword
             matchid_location_country:

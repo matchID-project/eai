@@ -1,0 +1,42 @@
+recipes:
+  coop_x_fisc:
+    test_chunk_size: 50
+    threads: 20
+    input: name
+    output: coop_x_fisc
+    steps:
+      #- keep:
+      #    where: (BirthDate > "1951-01-01") & (BirthDate < "1951-12-31")
+      - dataprep_name:
+      - matching_panel:
+      - keep:
+          select: .*
+          where: hit_matchid_score_es >  min(max(hit_matchid_hit_number,15),30)     
+      - eval:
+          - matchid_location_city_geopoint_2d: matchid_location_city_geopoint_2d if ('matchid_location_city_geopoint_2d' in row.keys()) else str('') 
+          - matchid_location_city_src: matchid_location_city_src if ('matchid_location_city_src' in row.keys()) else str('') 
+      - scoring:
+      - eval:
+      # create specific score for better bootstrapping
+        - matchid_hit_score: round(1.0*matchid_hit_score_name*matchid_hit_score_date*(0.8+0.2*matchid_hit_score_location),2)
+        - confiance:  round(100*matchid_hit_score,0)
+      - keep:
+          select: .*
+          where: confiance > 20
+      - groupby:
+          select: matchid_id
+          transform:
+            - hit_matchid_id: count
+            - matchid_hit_score: max
+            - matchid_hit_score: min           
+      - groupby:
+          select: matchid_id            
+          rank:
+            - matchid_hit_score
+      - keep:
+          select: .*
+          where: ((matchid_hit_score_rank == 1) & ((hit_matchid_id_count < 5)| (matchid_hit_score > 0.25))) | (matchid_hit_score > min(0.5,matchid_hit_score_max-1/hit_matchid_id_count))      
+            
+      - diff:
+     # - rescoring_coop_x_fisc:
+   

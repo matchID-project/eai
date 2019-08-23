@@ -1,0 +1,23 @@
+recipes:
+  rescoring_coop_x_fisc:
+    threads: 20
+    input: coop_x_fisc
+    output: 
+      dataset: coop_x_fisc
+      mode: update
+    steps:
+      - apply_model:
+          name: coop_fisc_ml
+          numerical: .*(hit_score_(?!ml|rank|max|min).*|population|surface)$
+          target: matchid_hit_score_ml
+      - eval:
+          - confiance: >
+              try:
+                cell = round(0.7*float(matchid_hit_score_ml)+30*float(matchid_hit_score))
+              except:
+                try:
+                  cell = matchid_hit_score_ml
+                except:
+                  cell = matchid_hit_score
+          - scoring_version: str("{}-randomforest-{}").format(re.sub("-.*","",scoring_version),str(datetime.datetime.now()))
+    

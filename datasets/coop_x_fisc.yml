@@ -1,0 +1,5 @@
+datasets:
+  coop_x_fisc:
+    connector: elasticsearch
+    table: coop_x_fisc
+    validation: true 

@@ -1,19 +1,21 @@
 recipes:
   dataprep_panel:
-    test_chunk_size: 10000
+    test_chunk_size: 100
+    threads: 120
     input: panel
     output: panel_index
     steps:
       ##### FILTRAGE AMONT ##########
       - keep:
           select: .*
-          where: (random.random() < 0.01) & (CLE_NUM_SPI != "CLE_NUM_SPI")
+          where: (CLE_NUM_SPI != "CLE_NUM_SPI") # & (DATE_NAISSANCE[7:9] >= "50") & (DATE_NAISSANCE[7:9] < "60")
       # identifiants       
       - eval:
         #tag dataset and records with uniq id
-          - matchid_id: sha1(row)
-          - matchid_id_: NUM_PERSONNE+CLE_NUM_SPI
-          - matchid_src: str("ref_fiscal")
+          - matchid_id : NUM_PERSONNE+CLE_NUM_SPI
+          - matchid_id_spi : CLE_NUM_SPI
+          - matchid_id_personne: NUM_PERSONNE
+          - matchid_src: str("fisc")
       ##### MAPPING #####         
       - map:
           #date
@@ -43,11 +45,12 @@ recipes:
       ####### PREPARATION #######
       #sex
       - eval:
-          - matcihd_sex: 1 if (matchid_sex_src == "M") else 2
+          - matchid_sex: 1 if (matchid_sex_src == "M") else 2
       #name
       - eval:
           - matchid_name_last_src: list(set([matchid_name_last_src[0],matchid_name_last_src[1].split(",")[0]]))
           - matchid_name_last_src: list([x for x in  matchid_name_last_src if x != ""])         
+          
       - french_name_normalize:
       - french_name_frequency:
       
@@ -58,6 +61,8 @@ recipes:
           - matchid_location_countrycode: matchid_location_countrycode if (matchid_location_countrycode != "") else "FRA" if (matchid_location_depcode_src != "99") else ""
       - french_city+dep:
       - algeria_city:
+      #- eval:
+      #    - matchid_location_es_geopoint_2d: list([float(x) for x in matchid_location_city_geopoint_2d.replace("POINT(","").replace(")","").split(" ")[::-1]]) if (matchid_location_city_geopoint_2d != "") else list([])
       
       # date
  
@@ -77,6 +82,10 @@ recipes:
             - NOV: "11"
             - DEC: "12"
             - '(\d{2})-(\d{2})-(\d{2})': '19\3\2\1'
+      - replace:
+          select: matchid_date.*maj.*
+          regex:
+            - "^19": "20"
       - parsedate:
           select: matchid_date_(birth$|.*maj.*)
           format: "%Y%m%d"

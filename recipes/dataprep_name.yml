@@ -1,7 +1,77 @@
 recipes:
   dataprep_name:
-    input: replace_input
-    output: replace_output
+    test_chunk_size: 50
+    threads: 100
+    input: name
+    output: name_index
     steps:
+      ##### FILTRAGE AMONT ##########
+      # identifiants 
       - eval:
-          - new_col: sha1(row)
+        #tag dataset and records with uniq id
+          - matchid_id: sha1(row)
+          #- matchid_id_file: FileName
+          #- matchid_id_ref: DocRefId
+          #- matchid_id_msg: MessageId
+          - matchid_src: str("coop")
+      ##### MAPPING #####         
+      - map:
+          #date
+          matchid_date_birth_src: BirthDate
+          #name
+          matchid_name_src: NameFree
+          matchid_name_last_src: LastName
+          matchid_name_first_src: 
+            - FirstName
+            - MiddleName
+          #location
+          matchid_location_city_src: BirthCity
+          matchid_location_city: BirthCity
+          matchid_location_countrycode_src: BirthCountryCode
+ 
+      - keep: 
+          select: matchid_.*
+     
+      ####### PREPARATION #######
+      #sex
+      - eval:
+          - matcihd_sex_src: str("")
+          - matchid_sex: str("X")
+          - matchid_name: re.split('\W+', matchid_name_src)
+          - matchid_name_last_src: matchid_name[-1] if (matchid_name_last_src == "") else matchid_name_last_src
+          - matchid_name_first_src: matchid_name[:len(matchid_name)-1] if (matchid_name_first_src == ["",""]) else matchid_name_first_src          
+      - french_name_normalize:
+      - french_name_frequency:
+      
+      #location
+      - eval:
+          - matchid_location_countrycode_src: str("XX") if (matchid_location_countrycode_src == "") else matchid_location_countrycode_src
+      - join:
+          dataset: countries
+          type: in_memory
+          strict:
+            matchid_location_countrycode_src: CODEISO2
+          select:
+            matchid_location_country: LIBCOG
+            matchid_location_countrycode: CODEISO3
+      - eval :
+          - matchid_location_countrycode: matchid_location_countrycode if (matchid_location_countrycode != "") else "XXX"
+          - matchid_location_country: matchid_location_country if (matchid_location_country != "") else "XXXXX"
+          - matchid_location_city: matchid_location_city_src if ((matchid_location_city_src != "") & (matchid_location_city_src != "Unknown")) else "XXXXX"
+          - matchid_location_citycode : str("XXXXX")
+          - matchid_location_citycode_history: list([])
+          - matchid_location_depcode: str("XX")
+          - matchid_location_city_geopoint_2d: str("")
+      #- french_city+dep:
+      #- algeria_city:
+      
+      # date
+ 
+      - replace:
+          select: matchid_date_birth_src
+          regex:
+            - '^1001-01-01': '' # dates invalides 
+            - '^1657': '1957'
+            - '-': ''
+
+      - ymd_date: 

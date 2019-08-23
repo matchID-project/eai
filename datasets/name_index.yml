@@ -1,0 +1,4 @@
+datasets:
+  name_index:
+    connector: elasticsearch
+    table: name_index
